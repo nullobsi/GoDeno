@@ -1,5 +1,3 @@
-import compatCrypto from "./compat/crypto.ts";
-import perf from "./compat/performance.ts";
 import process from "./compat/process.ts";
 import fs from "./compat/fs.ts";
 
@@ -9,7 +7,7 @@ let decoder = new TextDecoder();
 
 class Go {
     public argv = ["js"];
-    public exports?: {[x:string]: any} = {};
+    public exports: {[x:string]: any} = {};
     public env: {[x:string]:string} = {};
     public importObject = {
         go: {
@@ -22,7 +20,7 @@ class Go {
                 delete this.goRefCounts;
                 delete this.ids;
                 delete this.idPool;
-                delete this.exports;
+                this.exports = {};
                 this.exit(code);
             },
 
@@ -30,6 +28,7 @@ class Go {
             //n = length of data
             // func wasmWrite(fd uintptr, p unsafe.Pointer, n int32)
             "runtime.wasmWrite":(sp:number) => {
+                sp >>>= 0
                 // get parameters from wasm memory
                 const fd = this.getInt64(sp + 8);
                 const p = this.getInt64(sp + 16);
@@ -52,12 +51,14 @@ class Go {
             // performance stuffs
             // func nanotime1() int64
             "runtime.nanotime1": (sp: number) => {
+                sp >>>= 0
                 if (this.timeOrigin === undefined) throw new Error("Memory not initialized!");
                 this.setInt64(sp + 8, (this.timeOrigin + performance.now()) * 1000000);
             },
 
             // func walltime1() (sec int64, nsec int32)
             "runtime.walltime1": (sp: number) => {
+                sp >>>= 0
                 if (this.mem === undefined) throw new Error("Memory not initialized!");
 
                 const msec = (new Date).getTime();
@@ -74,6 +75,7 @@ class Go {
 
             // func scheduleTimeoutEvent(delay int64) int32
             "runtime.scheduleTimeoutEvent": (sp: number) => {
+                sp >>>= 0
                 if (this.mem === undefined) throw new Error("Memory not initialized!");
 
                 const id = this.nextCBID;
@@ -98,6 +100,7 @@ class Go {
             //bug happens from this func.
             // func clearTimeoutEvent(id int32)
             "runtime.clearTimeoutEvent": (sp: number) => {
+                sp >>>= 0
                 if (this.mem === undefined) throw new Error("Memory not initialized!");
 
                 const id = this.mem.getInt32(sp + 8, true);
@@ -107,6 +110,7 @@ class Go {
 
             // func getRandomData(r []byte)
             "runtime.getRandomData": (sp:number) => {
+                sp >>>= 0
                 crypto.getRandomValues(this.loadSlice(sp + 8));
             },
 
@@ -114,6 +118,7 @@ class Go {
 
             // func finalizeRef(v ref)
             "syscall/js.finalizeRef": (sp: number) => {
+                sp >>>= 0
                 if (this.mem === undefined) throw new Error("Memory not initialized!");
                 if (this.goRefCounts === undefined) throw new Error("Memory not initialized!");
                 if (this._values === undefined) throw new Error("Memory not initialized!");
@@ -133,6 +138,7 @@ class Go {
             //load string to Go
             // func stringVal(value string) ref
             "syscall/js.stringVal": (sp:number) => {
+                sp >>>= 0
                 this.storeValue(sp + 24, this.loadString(sp + 8));
             },
 
@@ -145,6 +151,7 @@ class Go {
 
             // func valueGet(v ref, p string) ref
             "syscall/js.valueGet": (sp: number) => {
+                sp >>>= 0
                 // get value from object referenced by Go, string index
                 let obj = this.loadValue(sp + 8);
                 let ind = this.loadString(sp + 16);
@@ -156,7 +163,7 @@ class Go {
                     }
                     if (obj == window) {
                         if (ind == "fs") result = fs;
-                        else if (ind == "performance") result = perf;
+                        else if (ind == "performance") result = performance;
                         else if (ind == "process") result = process;
                         else if (ind == "crypto") result = crypto;
                         else result = Reflect.get(this.exports, ind);
@@ -166,11 +173,13 @@ class Go {
                 //TODO: type this properly
                 //@ts-ignore
                 sp = this.instance.exports.getsp(); // see comment above
+                sp >>>= 0
                 this.storeValue(sp + 32, result);
             },
 
             // func valueSet(v ref, p string, x ref)
             "syscall/js.valueSet": (sp: number) => {
+                sp >>>= 0
                 //set values on object referenced by Go
                 let target = this.loadValue(sp + 8);
                 let name = this.loadString(sp + 16);
@@ -181,24 +190,28 @@ class Go {
 
             // func valueDelete(v ref, p string)
             "syscall/js.valueDelete": (sp: number) => {
+                sp >>>= 0
                 //delete the prop
                 Reflect.deleteProperty(this.loadValue(sp + 8), this.loadString(sp + 16));
             },
 
             // func valueIndex(v ref, i int) ref
             "syscall/js.valueIndex": (sp: number) => {
+                sp >>>= 0
                 //index array
                 this.storeValue(sp + 24, Reflect.get(this.loadValue(sp + 8), this.getInt64(sp + 16)));
             },
 
             // valueSetIndex(v ref, i int, x ref)
             "syscall/js.valueSetIndex": (sp: number) => {
+                sp >>>= 0
                 //store at index
                 Reflect.set(this.loadValue(sp + 8), this.getInt64(sp + 16), this.loadValue(sp + 24));
             },
 
             // func valueCall(v ref, m string, args []ref) (ref, bool)
             "syscall/js.valueCall": (sp: number) => {
+                sp >>>= 0
                 if (this.mem === undefined) throw new Error("Memory not initialized!");
                 try {
                     // obtain "this" object from Go ref
@@ -213,7 +226,7 @@ class Go {
                     //TODO: type this properly
                     //@ts-ignore
                     sp = this.instance.exports.getsp(); // see comment above
-
+                    sp >>>= 0
                     this.storeValue(sp + 56, result);
                     this.mem.setUint8(sp + 64, 1);
                 } catch (err) {
@@ -224,6 +237,7 @@ class Go {
 
             // func valueInvoke(v ref, args []ref) (ref, bool)
             "syscall/js.valueInvoke": (sp:number) => {
+                sp >>>= 0
                 if (this.mem === undefined) throw new Error("Memory not initialized!");
 
                 try {
@@ -237,7 +251,7 @@ class Go {
                     //TODO: type this properly
                     //@ts-ignore
                     sp = this.instance.exports.getsp(); // see comment above
-
+                    sp >>>= 0
                     // store result
                     this.storeValue(sp + 40, result);
                     this.mem.setUint8(sp + 48, 1);
@@ -251,6 +265,7 @@ class Go {
             //create new object from function
             // func valueNew(v ref, args []ref) (ref, bool)
             "syscall/js.valueNew": (sp: number) => {
+                sp >>>= 0
                 if (this.mem === undefined) throw new Error("Memory not initialized!");
 
                 try {
@@ -264,7 +279,7 @@ class Go {
                     //TODO: type this properly
                     //@ts-ignore
                     sp = this.instance.exports.getsp(); // see comment above
-
+                    sp >>>= 0
                     // store new object
                     this.storeValue(sp + 40, result);
                     this.mem.setUint8(sp + 48, 1);
@@ -278,6 +293,7 @@ class Go {
             //get array length
             // func valueLength(v ref) int
             "syscall/js.valueLength": (sp: number) => {
+                sp >>>= 0
                 let arr: Array<any> = this.loadValue(sp + 8);
                 if (typeof arr !== "object") {
                     throw new Error("Call of .Length() on non object!");
@@ -287,6 +303,7 @@ class Go {
 
             // valuePrepareString(v ref) (ref, int)
             "syscall/js.valuePrepareString": (sp: number) => {
+                sp >>>= 0
                 //encode string to UTF-8
                 const str = encoder.encode(String(this.loadValue(sp + 8)));
                 //store string ref into Go
@@ -296,6 +313,7 @@ class Go {
 
             // valueLoadString(v ref, b []byte)
             "syscall/js.valueLoadString": (sp: number) => {
+                sp >>>= 0
                 //load string value into Go memory
                 const str = this.loadValue(sp + 8);
                 this.loadSlice(sp + 16).set(str);
@@ -303,6 +321,7 @@ class Go {
 
             // func valueInstanceOf(v ref, t ref) bool
             "syscall/js.valueInstanceOf": (sp: number) => {
+                sp >>>= 0
                 if (this.mem === undefined) throw new Error("Memory not initialized!");
                 let obj = this.loadValue(sp + 8);
                 let parent = this.loadValue(sp + 16);
@@ -312,6 +331,7 @@ class Go {
             //load uint8 to Go
             // func copyBytesToGo(dst []byte, src ref) (int, bool)
             "syscall/js.copyBytesToGo": (sp: number) => {
+                sp >>>= 0
                 if (this.mem === undefined) throw new Error("Memory not initialized!");
 
                 //load buffers
@@ -333,6 +353,7 @@ class Go {
             // load from Go to uint8
             // func copyBytesToJS(dst ref, src []byte) (int, bool)
             "syscall/js.copyBytesToJS": (sp: number) => {
+                sp >>>= 0
                 if (this.mem === undefined) throw new Error("Memory not initialized!");
 
                 //load buffers
@@ -612,7 +633,6 @@ class Go {
             event = {id: id, this: this, args: arguments};
             go._pendingEvent = event;
             go.resume();
-            //i don't know but whatever go does it works!
             //@ts-ignore
             return event.result;
         };
