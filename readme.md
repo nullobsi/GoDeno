@@ -20,3 +20,10 @@ console.log("Go returned: " + value);
 ```
 
 The `exports` object is whatever the Go program set on the global scope.
+
+Things tested working:
+- [x] Filesystem read
+- [x] fmt println
+- [x] basic functionality
+
+Other things should work, but may not have been tested. Deno doesn't support `gid` and a few other things that Go relies on from the node.js libraries. They have been filled with dummy functions.
