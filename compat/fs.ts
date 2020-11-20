@@ -95,7 +95,7 @@ const fs = {
 
         }
         options.mode = mode;
-        console.log(options)
+        //console.log(options)
         let fd =  Deno.openSync(path, options).rid;
         fdMappings[fd] = path;
         return fd;

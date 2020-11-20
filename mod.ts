@@ -9,7 +9,7 @@ let decoder = new TextDecoder();
 
 class Go {
     public argv = ["js"];
-    public exports: {[x:string]: any} = {...window,compatCrypto, perf, process, fs, Uint8Array: window.Uint8Array}
+    public exports?: {[x:string]: any} = {};
     public env: {[x:string]:string} = {};
     public importObject = {
         go: {
@@ -18,10 +18,11 @@ class Go {
                 const code = this.mem.getInt32(sp + 8,true);
                 this.exited = true;
                 delete this.instance;
-                delete this.refValues;
+                delete this._values;
                 delete this.goRefCounts;
                 delete this.ids;
                 delete this.idPool;
+                delete this.exports;
                 this.exit(code);
             },
 
@@ -115,15 +116,15 @@ class Go {
             "syscall/js.finalizeRef": (sp: number) => {
                 if (this.mem === undefined) throw new Error("Memory not initialized!");
                 if (this.goRefCounts === undefined) throw new Error("Memory not initialized!");
-                if (this.refValues === undefined) throw new Error("Memory not initialized!");
+                if (this._values === undefined) throw new Error("Memory not initialized!");
                 if (this.ids === undefined) throw new Error("Memory not initialized!");
                 if (this.idPool === undefined) throw new Error("Memory not initialized!");
 
                 const id = this.mem.getUint32(sp + 8, true);
                 this.goRefCounts[id]--;
                 if (this.goRefCounts[id] === 0) {
-                    const v = this.refValues[id];
-                    this.refValues[id] = null;
+                    const v = this._values[id];
+                    this._values[id] = null;
                     this.ids.delete(v);
                     this.idPool.push(id);
                 }
@@ -145,7 +146,22 @@ class Go {
             // func valueGet(v ref, p string) ref
             "syscall/js.valueGet": (sp: number) => {
                 // get value from object referenced by Go, string index
-                const result = Reflect.get(this.loadValue(sp + 8), this.loadString(sp + 16));
+                let obj = this.loadValue(sp + 8);
+                let ind = this.loadString(sp + 16);
+                let result = Reflect.get(obj, ind);
+
+                if (result === undefined) {
+                    if (this.exports === undefined) {
+                        throw new Error("Memory not initialized!");
+                    }
+                    if (obj == window) {
+                        if (ind == "fs") result = fs;
+                        else if (ind == "performance") result = perf;
+                        else if (ind == "process") result = process;
+                        else if (ind == "crypto") result = crypto;
+                        else result = Reflect.get(this.exports, ind);
+                    }
+                }
 
                 //TODO: type this properly
                 //@ts-ignore
@@ -156,7 +172,11 @@ class Go {
             // func valueSet(v ref, p string, x ref)
             "syscall/js.valueSet": (sp: number) => {
                 //set values on object referenced by Go
-                Reflect.set(this.loadValue(sp + 8), this.loadString(sp + 16), this.loadValue(sp + 32));
+                let target = this.loadValue(sp + 8);
+                let name = this.loadString(sp + 16);
+                let value = this.loadValue(sp + 32);
+                if (target == window) target = this.exports;
+                Reflect.set(target, name, value);
             },
 
             // func valueDelete(v ref, p string)
@@ -348,7 +368,7 @@ class Go {
     private instance?: WebAssembly.Instance;
     private mem?: DataView;
 
-    private refValues?: any[];
+    private _values?: any[];
     private goRefCounts?: number[];
     private ids?: Map<any,number>;
     private idPool?: number[];
@@ -378,23 +398,22 @@ class Go {
         // @ts-ignore
         this.mem = new DataView(i.exports.mem.buffer);
         //initialize initial reference values:
-        this.refValues = [
+        this._values = [
             NaN,
             0,
             null,
             true,
             false,
-            //originally Global, contains objects used by Go and objects exported by Go;
-            this.exports,
+            window,
             this,
         ];
-        this.goRefCounts = new Array(this.refValues.length).fill(Infinity); //number of refs that go has to a value
+        this.goRefCounts = new Array(this._values.length).fill(Infinity); //number of refs that go has to a value
         this.ids = new Map(<[any,number][]>[ // mapping from JS values to reference ids
             [0, 1],
             [null, 2],
             [true, 3],
             [false, 4],
-            [this.exports, 5],
+            [window, 5],
             [this, 6],
         ]);
         this.idPool = [];
@@ -474,7 +493,7 @@ class Go {
 
     private loadValue(addr: number) {
         if (!this.mem) throw Error("Memory not initialized!");
-        if (!this.refValues) throw Error("Memory not initialized!");
+        if (!this._values) throw Error("Memory not initialized!");
         const f = this.mem.getFloat64(addr, true);
         if (f === 0) {
             return undefined;
@@ -484,11 +503,11 @@ class Go {
         }
 
         const id = this.mem.getUint32(addr, true);
-        return this.refValues[id];
+        return this._values[id];
     }
     private storeValue(addr: number, v: any) {
         if (this.mem === undefined) throw Error("Memory not initialized!");
-        if (this.refValues === undefined) throw Error("Memory not initialized!");
+        if (this._values === undefined) throw Error("Memory not initialized!");
         if (this.ids === undefined) throw Error("Memory not initialized!");
         if (this.idPool === undefined) throw Error("Memory not initialized!");
         if (this.goRefCounts === undefined) throw Error("Memory not initialized!");
@@ -513,9 +532,9 @@ class Go {
         if (id === undefined) {
             id = this.idPool.pop();
             if (id === undefined) {
-                id = this.refValues.length;
+                id = this._values.length;
             }
-            this.refValues[id] = v;
+            this._values[id] = v;
             this.goRefCounts[id] = 0;
             this.ids.set(v, id);
         }
