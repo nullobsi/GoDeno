@@ -252,7 +252,7 @@ const fs = {
         cb(null);
     },
     utimesSync(path: string, atime: number, mtime: number) {
-        Deno.utime(path, atime, mtime);
+        Deno.utimeSync(path, atime, mtime);
     },
 
     rename(oldPath: string, newPath: string, cb: (err: Error|null) => void) {

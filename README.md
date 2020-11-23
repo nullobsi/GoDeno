@@ -9,7 +9,21 @@ Requires `--unstable` flag. Permissions flags are also required for filesystem u
 2. Create a new WASM instance with the `importObject` on the new `Go` object.
 3. Run `go.run(wasmInstance)` with your WASM instance.
 
+The `go` instance has an exports object for any objects that Go exposed on the `js.Global()` object.
+
 Example Code:
+
+```go
+package main
+
+import "syscall/js"
+
+func main() {
+    js.Global().Set("export1", "Hello!");
+    <- make(chan bool)
+}
+```
+
 ```ts
 import Go from "mod.ts"
 
@@ -17,11 +31,9 @@ let go = new Go();
 let inst = await WebAssembly.instantiate(Deno.readFileSync("code.wasm"), go.importObject);
 let promise = go.run(inst);
 
-let value = go.exports.coolFunction();
-console.log("Go returned: " + value);
+let value = go.exports.export1;
+console.log("Go says: " + value); //Go says: Hello!
 ```
-
-The `exports` object is whatever the Go program set on the global scope.
 
 ### Go FS implementation
 - [x] fs.open      
@@ -48,3 +60,16 @@ The `exports` object is whatever the Go program set on the global scope.
 - [x] fs.fsync     
 - [x] fs.read       (`position` not implemented)
 - [x] fs.write      (`position` not implemented)
+
+### Go Process implementation
+As of now, Deno does not have ways to get the UID/GID or umask.
+- [ ] process.getuid
+- [ ] process.getgid
+- [ ] process.geteuid
+- [ ] process.getegid
+- [ ] process.getgroups
+- [x] process.pid
+- [x] process.ppid       (Unstable API)
+- [ ] process.umask
+- [x] process.cwd
+- [x] process.chdir
