@@ -4,7 +4,7 @@
   "entry": "./mod.ts",
   "description": "golang glue code for Deno",
   "homepage": "https://github.com/nullobsi/GoDeno",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "unstable": true,
   "files": [
     "./compat/**/*",
