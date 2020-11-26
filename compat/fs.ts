@@ -1,5 +1,4 @@
 import enosys from "./enosys.ts";
-import SeekMode = Deno.SeekMode;
 
 interface Stats {
     dev: number;
@@ -84,12 +83,18 @@ const fs = {
     //TODO: position
     //use Deno.File
     write: function(fd: number, buf: Uint8Array, offset: number, length: number, position: number, callback: (err: Error|null, written: number, buf: Uint8Array) => void) {
-        Deno.write(fd, buf)
-            .then(written => callback(null, written, buf))
-            .catch(err => callback(err, 0, buf));
+        let written = Deno.writeSync(fd, buf);
+        callback(null, written, buf);
+    },
+    writeSync(fd: number, buf: Uint8Array) {
+        return Deno.writeSync(fd, buf);
+    },
+    open(path: string, flags: number, mode: number, cb: (err: Error | null, fd: number) => void) {
+        let fd = this.openSync(path, flags, mode)
+        cb(null, fd);
     },
 
-    open(path: string, flags: number, mode: number, cb: (err: Error | null, fd: number) => void) {
+    openSync (path:string, flags: number, mode: number) {
         let options: Deno.OpenOptions = {};
         if (typeof flags == "number") {
             let rw = flags & 1;
@@ -120,105 +125,120 @@ const fs = {
         }
         options.mode = mode;
         //console.log(options)
-        Deno.open(path, options).then(file => {
-            fdMappings[file.rid] = path;
-            cb(null,file.rid);
-        })
-            .catch(err => cb(err, 0));
+        let fd =  Deno.openSync(path, options).rid;
+        fdMappings[fd] = path;
+        return fd;
     },
-
     //fstat is an unstable API
-    fstat(fd: number, cb: (err: Error | null, stats: Stats | null) => void) {
-        Deno.fstat(fd).then(denostat => {
-            let stats = denoStatToNode(denostat);
-            cb(null, stats);
-        })
-            .catch(err => cb(err, null))
+    fstatSync(fd: number) {
+        //require("fs").stat
+        let stats = denoStatToNode(Deno.fstatSync(fd));
+        return stats;
+    },
+    fstat(fd: number, cb: (err: Error | null, stats: Stats) => void) {
+        let stats = this.fstatSync(fd);
+        cb(null, stats);
+    },
+    statSync(path: string) {
+        let status = Deno.statSync(path);
+        let nStat = denoStatToNode(status);
+        return nStat;
+    },
+    stat(path: string, cb: (err: Error | null, stats: Stats) => void) {
+        let res = this.statSync(path);
+        cb(null, res);
     },
 
-    stat(path: string, cb: (err: Error | null, stats: Stats | null) => void) {
-        Deno.stat(path).then(denostat => {
-            let res = denoStatToNode(denostat);
-            cb(null, res);
-        })
-            .catch(err => cb(err, null))
-
+    lstat(path: string, cb: (err: Error|null, stats: Stats) => void) {
+        let res = this.lstatSync(path);
+        cb(null, res);
     },
-
-    lstat(path: string, cb: (err: Error|null, stats: Stats | null) => void) {
-        Deno.lstat(path).then(denostat => {
-            let res = denoStatToNode(denostat);
-            cb(null, res);
-        })
-            .catch(err => cb(err, null))
+    lstatSync(path: string) {
+        let stat = Deno.lstatSync(path);
+        let nStat = denoStatToNode(stat);
+        return nStat;
     },
 
     close(fd: number, cb: (err: Error | null) => void) {
-        Deno.close(fd);
+        this.closeSync(fd);
         cb(null);
     },
-
-    async readAwait(fd: number, buffer: Uint8Array, offset: number, length: number, position?: number | null) {
-        let file = new Deno.File(fd);
-        if (position !== null && position !== undefined) {
-            await file.seek(position, SeekMode.Start)
-        }
-        let buf = new Uint8Array(length);
-        let read = await file.read(buf);
-        if (read === null) read = 0;
-        buffer.set(buf, offset);
-        return read;
+    closeSync(fd: number) {
+        Deno.close(fd);
+        return null;
+    },
+    //TODO: position
+    //use Deno.File
+    readSync(fd: number, buffer: Uint8Array, offset: number, length: number, position: number) {
+        let res = Deno.readSync(fd, buffer);
+        //deno returns null when file is done while Node returns 0
+        if (res == null) res = 0;
+        return res;
     },
     read(fd: number, buffer: Uint8Array, offset: number, length: number, position: number, cb: (err: Error | null, len: number, buffer: Uint8Array) => void) {
-        this.readAwait(fd, buffer, offset, length, position)
-            .then(written => cb(null, written, buffer))
-            .catch(err => cb(err, 0, buffer));
+        let res = this.readSync(fd, buffer, offset, length, position);
+        cb(null, res, buffer);
     },
 
     mkdir(path: string, mode: number, cb: (err:Error|null) => void) {
-        Deno.mkdir(path, {mode})
-            .then(() => cb(null))
-            .catch(cb);
+        this.mkdirSync(path, mode);
+        cb(null);
+    },
+    mkdirSync(path: string, mode: number) {
+        Deno.mkdirSync(path, {
+            mode: mode,
+        });
     },
 
     readdir(path: string, cb: (err: Error | null, files: string[]) => void) {
-        this.readdirAwait(path)
-            .then(arr => cb(null, arr))
-            .catch(err => cb(err, []))
+        let res = this.readdirSync(path);
+        cb(null, res);
     },
-    async readdirAwait(path: string) {
-        let iterable = Deno.readDir(path);
+    readdirSync(path: string) {
+        let entries = Deno.readDirSync(path);
         let arr = [];
-        for await (let i of iterable) {
-            arr.push(i.name);
-        }
+        for (let filename of entries) arr.push(filename.name);
         return arr;
     },
 
     rmdir(path: string, cb: (err: Error|null) => void) {
-        Deno.remove(path)
-            .then(() => cb(null))
-            .catch(err => cb(err));
+        this.rmdirSync(path);
+        cb(null);
+    },
+    rmdirSync(path: string) {
+        Deno.removeSync(path);
     },
 
     chmod(path: string, mode: number, cb: (err: Error|null) => void) {
-        Deno.chmod(path, mode)
-            .then(() => cb(null))
-            .catch(err => cb(err));
+        this.chmodSync(path, mode);
+        cb(null);
+    },
+    chmodSync(path: string, mode: number) {
+        Deno.chmodSync(path, mode);
     },
 
     fchmod(fd: number, mode: number, cb: (err: Error|null) => void) {
-        this.chmod(fdMappings[fd], mode, cb);
+        this.fchmodSync(fd, mode);
+        cb(null);
+    },
+    fchmodSync(fd: number, mode: number) {
+        this.chmodSync(fdMappings[fd], mode);
     },
 
     chown(path: string, uid: number, gid: number, cb: (err: Error|null) => void) {
-        Deno.chown(path, uid === -1 ? null : uid, gid === -1 ? null : gid)
-            .then(() => cb(null))
-            .catch(err => cb(err));
+        this.chownSync(path, uid, gid);
+        cb(null);
+    },
+    chownSync(path: string, uid: number, gid: number) {
+        Deno.chownSync(path, uid === -1 ? null : uid, gid === -1 ? null : gid);
     },
 
     fchown(fd: number, uid: number, gid: number, cb: (err: Error|null) => void) {
-        this.chown(fdMappings[fd], uid, gid, cb);
+        this.fchownSync(fd, uid, gid);
+        cb(null);
+    },
+    fchownSync(fd: number, uid: number, gid: number) {
+        this.chownSync(fdMappings[fd], uid, gid);
     },
 
     //Deno does not support lchown
@@ -228,60 +248,78 @@ const fs = {
 
     // Deno utime is unstable
     utimes(path: string, atime: number, mtime: number, cb: (err: Error|null) => void) {
-        Deno.utime(path, atime, mtime)
-            .then(() => cb(null))
-            .catch(err => cb(err));
+        this.utimesSync(path, atime, mtime);
+        cb(null);
+    },
+    utimesSync(path: string, atime: number, mtime: number) {
+        Deno.utimeSync(path, atime, mtime);
     },
 
     rename(oldPath: string, newPath: string, cb: (err: Error|null) => void) {
-        Deno.rename(oldPath, newPath)
-            .then(() => cb(null))
-            .catch(err => cb(err));
+        this.renameSync(oldPath, newPath);
+        cb(null);
+    },
+    renameSync(oldPath: string, newPath: string) {
+        Deno.renameSync(oldPath, newPath);
     },
 
     truncate(path: string, len: number, cb: (err: Error|null) => void) {
-        Deno.truncate(path, len)
-            .then(() => cb(null))
-            .catch(err => cb(err));
+        this.truncateSync(path, len);
+        cb(null);
+    },
+    truncateSync(path: string, len: number) {
+        Deno.truncateSync(path, len);
     },
 
     //ftruncate is an unstable API
     ftruncate(fd: number, len: number, cb: (err: null|Error)=>void) {
-        Deno.ftruncate(fd, len)
-            .then(() => cb(null))
-            .catch(err => cb(err))
+        this.ftruncateSync(fd, len);
+        cb(null);
+    },
+    ftruncateSync(fd: number, len: number) {
+        Deno.ftruncateSync(fd, len);
     },
 
     readlink(path: string, cb: (err: Error|null, linkStr: string) => void) {
-        Deno.readLink(path)
-            .then(str => cb(null, str))
-            .catch(err => cb(err, ""))
+        let res = this.readlinkSync(path);
+        cb(null,res);
+    },
+    readlinkSync(path: string) {
+        return Deno.readLinkSync(path);
     },
 
     //link is an unstable API
     link(oldpath: string, newpath: string, cb: (err: Error|null) => void) {
-        Deno.link(oldpath, newpath)
-            .then(() => cb(null))
-            .catch(err => cb(err))
+        this.linkSync(oldpath, newpath);
+    },
+    linkSync(oldpath: string, newpath: string) {
+        Deno.linkSync(oldpath, newpath);
     },
 
     unlink(path: string, cb: (err: Error|null) => void) {
-        Deno.remove(path);
+        this.unlinkSync(path);
         cb(null);
+    },
+    unlinkSync(path:string) {
+        Deno.removeSync(path);
     },
 
     //symlink is an unstable API
     symlink(path: string, link: string, cb: (err: Error|null) => void) {
-        Deno.symlink(path, link)
-            .then(() => cb(null))
-            .catch(err => cb(err));
+        this.symlinkSync(path, link);
+        cb(null);
+    },
+    symlinkSync(path: string, link: string) {
+        Deno.symlinkSync(path, link);
     },
 
     fsync(fd: number, cb: (err: Error|null) => void) {
-        Deno.fsync(fd)
-            .then(() => cb(null))
-            .catch(err => cb(err));
+        this.fsyncSync(fd);
+        cb(null);
     },
+    fsyncSync(fd: number) {
+        Deno.fsyncSync(fd);
+    }
 
 
 
