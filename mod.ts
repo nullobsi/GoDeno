@@ -7,13 +7,13 @@ let decoder = new TextDecoder();
 
 class Go {
     public argv = ["js"];
-    public exports: {[x:string]: any} = {};
-    public env: {[x:string]:string} = {};
+    public exports: { [x: string]: any } = {};
+    public env: { [x: string]: string } = {};
     public importObject = {
         go: {
-            "runtime.wasmExit": (sp:number) => {
+            "runtime.wasmExit": (sp: number) => {
                 if (!this.mem) throw Error("Memory not initialized!");
-                const code = this.mem.getInt32(sp + 8,true);
+                const code = this.mem.getInt32(sp + 8, true);
                 this.exited = true;
                 delete this.instance;
                 delete this._values;
@@ -27,7 +27,7 @@ class Go {
             //p = space in WASM memory where data resides
             //n = length of data
             // func wasmWrite(fd uintptr, p unsafe.Pointer, n int32)
-            "runtime.wasmWrite":(sp:number) => {
+            "runtime.wasmWrite": (sp: number) => {
                 sp >>>= 0
                 // get parameters from wasm memory
                 const fd = this.getInt64(sp + 8);
@@ -42,7 +42,7 @@ class Go {
 
             //not sure what this is for, but it reinitializes the memory view
             // func resetMemoryDataView()
-            "runtime.resetMemoryDataView": (sp:number) => {
+            "runtime.resetMemoryDataView": (sp: number) => {
                 //TODO: type this properly
                 //@ts-ignore
                 this.mem = new DataView(this.instance.exports.mem.buffer);
@@ -109,7 +109,7 @@ class Go {
             },
 
             // func getRandomData(r []byte)
-            "runtime.getRandomData": (sp:number) => {
+            "runtime.getRandomData": (sp: number) => {
                 sp >>>= 0
                 crypto.getRandomValues(this.loadSlice(sp + 8));
             },
@@ -137,7 +137,7 @@ class Go {
 
             //load string to Go
             // func stringVal(value string) ref
-            "syscall/js.stringVal": (sp:number) => {
+            "syscall/js.stringVal": (sp: number) => {
                 sp >>>= 0
                 this.storeValue(sp + 24, this.loadString(sp + 8));
             },
@@ -236,7 +236,7 @@ class Go {
             },
 
             // func valueInvoke(v ref, args []ref) (ref, bool)
-            "syscall/js.valueInvoke": (sp:number) => {
+            "syscall/js.valueInvoke": (sp: number) => {
                 sp >>>= 0
                 if (this.mem === undefined) throw new Error("Memory not initialized!");
 
@@ -373,7 +373,7 @@ class Go {
             },
 
             "debug": (value: any) => {
-                console.log("[Go]",value);
+                console.log("[Go]", value);
             },
         }
     }
@@ -391,14 +391,14 @@ class Go {
 
     private _values?: any[];
     private goRefCounts?: number[];
-    private ids?: Map<any,number>;
+    private ids?: Map<any, number>;
     private idPool?: number[];
 
     private exited = false;
 
     private timeOrigin?: number;
 
-    constructor(argv?: string[], env?: {[x:string]: string}) {
+    constructor(argv?: string[], env?: { [x: string]: string }) {
         if (argv) {
             this.argv = argv;
         }
@@ -429,7 +429,7 @@ class Go {
             this,
         ];
         this.goRefCounts = new Array(this._values.length).fill(Infinity); //number of refs that go has to a value
-        this.ids = new Map(<[any,number][]>[ // mapping from JS values to reference ids
+        this.ids = new Map(<[any, number][]>[ // mapping from JS values to reference ids
             [0, 1],
             [null, 2],
             [true, 3],
@@ -458,7 +458,7 @@ class Go {
         const argc = this.argv.length;
 
 
-        const argvPtrs:number[] = [];
+        const argvPtrs: number[] = [];
         this.argv.forEach((arg) => {
             argvPtrs.push(strPtr(arg));
         });
@@ -495,19 +495,20 @@ class Go {
 
     private exit(code: number) {
         if (code !== 0) {
-            console.warn("exit code:",code)
+            console.warn("exit code:", code)
         }
     }
 
     private setInt64(addr: number, value: number) {
         if (!this.mem) throw Error("Memory not initialized!");
-        this.mem.setUint32(addr+0, value,true);
-        this.mem.setUint32(addr+4, Math.floor(value / 4294967296), true);
+        this.mem.setUint32(addr + 0, value, true);
+        this.mem.setUint32(addr + 4, Math.floor(value / 4294967296), true);
     }
+
     private getInt64(addr: number) {
         if (!this.mem) throw Error("Memory not initialized!");
-        const low  = this.mem.getUint32(addr+0,true);
-        const high = this.mem.getUint32(addr+4,true);
+        const low = this.mem.getUint32(addr + 0, true);
+        const high = this.mem.getUint32(addr + 4, true);
 
         return low + high * 4294967296;
     }
@@ -526,6 +527,7 @@ class Go {
         const id = this.mem.getUint32(addr, true);
         return this._values[id];
     }
+
     private storeValue(addr: number, v: any) {
         if (this.mem === undefined) throw Error("Memory not initialized!");
         if (this._values === undefined) throw Error("Memory not initialized!");
@@ -581,7 +583,7 @@ class Go {
         this.mem.setUint32(addr, id, true);
     }
 
-    private loadSlice(addr:number) {
+    private loadSlice(addr: number) {
         if (this.instance === undefined) throw new Error("Memory not initialized!");
         const array = this.getInt64(addr);
         const len = this.getInt64(addr + 8);
@@ -590,7 +592,8 @@ class Go {
         //@ts-ignore
         return new Uint8Array(this.instance.exports.mem.buffer, array, len);
     }
-    private loadSliceOfValues(addr:number) {
+
+    private loadSliceOfValues(addr: number) {
         const array = this.getInt64(addr);
         const len = this.getInt64(addr + 8);
         const a = new Array(len);
@@ -600,7 +603,7 @@ class Go {
         return a;
     }
 
-    private loadString(addr:number) {
+    private loadString(addr: number) {
         const saddr = this.getInt64(addr + 0);
         const len = this.getInt64(addr + 8);
         //TODO: type this properly

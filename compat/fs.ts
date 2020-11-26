@@ -7,14 +7,14 @@ interface Stats {
     nlink: number;
     uid: number;
     gid: number;
-    rdev:number;
+    rdev: number;
     size: number;
-    blksize:number
-    blocks:number
-    atimeMs:number;
-    mtimeMs:number;
-    ctimeMs:number;
-    birthtimeMs:number;
+    blksize: number
+    blocks: number
+    atimeMs: number;
+    mtimeMs: number;
+    ctimeMs: number;
+    birthtimeMs: number;
     atime: Date;
     mtime: Date;
     ctime: Date;
@@ -63,26 +63,26 @@ interface Stats {
 
 //go probably does not use it all but Deno's std node
 //interface is not directly compatible with fs
-let fdMappings:{[x:number]:string} = {}
+let fdMappings: { [x: number]: string } = {}
 const fs = {
     constants: {
-        O_RDONLY   : 0,
-        O_WRONLY   : 1,
-        O_RDWR     : 2,
+        O_RDONLY: 0,
+        O_WRONLY: 1,
+        O_RDWR: 2,
 
-        O_CREAT    : 0o100,
-        O_CREATE   : 0o100,
-        O_TRUNC    : 0o1000,
-        O_APPEND   : 0o2000,
-        O_EXCL     : 0o200,
-        O_SYNC     : 0o10000,
-        O_CLOEXEC  : 0,
+        O_CREAT: 0o100,
+        O_CREATE: 0o100,
+        O_TRUNC: 0o1000,
+        O_APPEND: 0o2000,
+        O_EXCL: 0o200,
+        O_SYNC: 0o10000,
+        O_CLOEXEC: 0,
 
     },
 
     //TODO: position
     //use Deno.File
-    write: function(fd: number, buf: Uint8Array, offset: number, length: number, position: number, callback: (err: Error|null, written: number, buf: Uint8Array) => void) {
+    write: function (fd: number, buf: Uint8Array, offset: number, length: number, position: number, callback: (err: Error | null, written: number, buf: Uint8Array) => void) {
         let written = Deno.writeSync(fd, buf);
         callback(null, written, buf);
     },
@@ -94,7 +94,7 @@ const fs = {
         cb(null, fd);
     },
 
-    openSync (path:string, flags: number, mode: number) {
+    openSync(path: string, flags: number, mode: number) {
         let options: Deno.OpenOptions = {};
         if (typeof flags == "number") {
             let rw = flags & 1;
@@ -125,7 +125,7 @@ const fs = {
         }
         options.mode = mode;
         //console.log(options)
-        let fd =  Deno.openSync(path, options).rid;
+        let fd = Deno.openSync(path, options).rid;
         fdMappings[fd] = path;
         return fd;
     },
@@ -149,7 +149,7 @@ const fs = {
         cb(null, res);
     },
 
-    lstat(path: string, cb: (err: Error|null, stats: Stats) => void) {
+    lstat(path: string, cb: (err: Error | null, stats: Stats) => void) {
         let res = this.lstatSync(path);
         cb(null, res);
     },
@@ -180,7 +180,7 @@ const fs = {
         cb(null, res, buffer);
     },
 
-    mkdir(path: string, mode: number, cb: (err:Error|null) => void) {
+    mkdir(path: string, mode: number, cb: (err: Error | null) => void) {
         this.mkdirSync(path, mode);
         cb(null);
     },
@@ -201,7 +201,7 @@ const fs = {
         return arr;
     },
 
-    rmdir(path: string, cb: (err: Error|null) => void) {
+    rmdir(path: string, cb: (err: Error | null) => void) {
         this.rmdirSync(path);
         cb(null);
     },
@@ -209,7 +209,7 @@ const fs = {
         Deno.removeSync(path);
     },
 
-    chmod(path: string, mode: number, cb: (err: Error|null) => void) {
+    chmod(path: string, mode: number, cb: (err: Error | null) => void) {
         this.chmodSync(path, mode);
         cb(null);
     },
@@ -217,7 +217,7 @@ const fs = {
         Deno.chmodSync(path, mode);
     },
 
-    fchmod(fd: number, mode: number, cb: (err: Error|null) => void) {
+    fchmod(fd: number, mode: number, cb: (err: Error | null) => void) {
         this.fchmodSync(fd, mode);
         cb(null);
     },
@@ -225,7 +225,7 @@ const fs = {
         this.chmodSync(fdMappings[fd], mode);
     },
 
-    chown(path: string, uid: number, gid: number, cb: (err: Error|null) => void) {
+    chown(path: string, uid: number, gid: number, cb: (err: Error | null) => void) {
         this.chownSync(path, uid, gid);
         cb(null);
     },
@@ -233,7 +233,7 @@ const fs = {
         Deno.chownSync(path, uid === -1 ? null : uid, gid === -1 ? null : gid);
     },
 
-    fchown(fd: number, uid: number, gid: number, cb: (err: Error|null) => void) {
+    fchown(fd: number, uid: number, gid: number, cb: (err: Error | null) => void) {
         this.fchownSync(fd, uid, gid);
         cb(null);
     },
@@ -242,12 +242,12 @@ const fs = {
     },
 
     //Deno does not support lchown
-    lchown(path: string, uid:number, gid:number, cb: (err: Error|null) => void) {
+    lchown(path: string, uid: number, gid: number, cb: (err: Error | null) => void) {
         cb(enosys());
     },
 
     // Deno utime is unstable
-    utimes(path: string, atime: number, mtime: number, cb: (err: Error|null) => void) {
+    utimes(path: string, atime: number, mtime: number, cb: (err: Error | null) => void) {
         this.utimesSync(path, atime, mtime);
         cb(null);
     },
@@ -255,7 +255,7 @@ const fs = {
         Deno.utimeSync(path, atime, mtime);
     },
 
-    rename(oldPath: string, newPath: string, cb: (err: Error|null) => void) {
+    rename(oldPath: string, newPath: string, cb: (err: Error | null) => void) {
         this.renameSync(oldPath, newPath);
         cb(null);
     },
@@ -263,7 +263,7 @@ const fs = {
         Deno.renameSync(oldPath, newPath);
     },
 
-    truncate(path: string, len: number, cb: (err: Error|null) => void) {
+    truncate(path: string, len: number, cb: (err: Error | null) => void) {
         this.truncateSync(path, len);
         cb(null);
     },
@@ -272,7 +272,7 @@ const fs = {
     },
 
     //ftruncate is an unstable API
-    ftruncate(fd: number, len: number, cb: (err: null|Error)=>void) {
+    ftruncate(fd: number, len: number, cb: (err: null | Error) => void) {
         this.ftruncateSync(fd, len);
         cb(null);
     },
@@ -280,32 +280,32 @@ const fs = {
         Deno.ftruncateSync(fd, len);
     },
 
-    readlink(path: string, cb: (err: Error|null, linkStr: string) => void) {
+    readlink(path: string, cb: (err: Error | null, linkStr: string) => void) {
         let res = this.readlinkSync(path);
-        cb(null,res);
+        cb(null, res);
     },
     readlinkSync(path: string) {
         return Deno.readLinkSync(path);
     },
 
     //link is an unstable API
-    link(oldpath: string, newpath: string, cb: (err: Error|null) => void) {
+    link(oldpath: string, newpath: string, cb: (err: Error | null) => void) {
         this.linkSync(oldpath, newpath);
     },
     linkSync(oldpath: string, newpath: string) {
         Deno.linkSync(oldpath, newpath);
     },
 
-    unlink(path: string, cb: (err: Error|null) => void) {
+    unlink(path: string, cb: (err: Error | null) => void) {
         this.unlinkSync(path);
         cb(null);
     },
-    unlinkSync(path:string) {
+    unlinkSync(path: string) {
         Deno.removeSync(path);
     },
 
     //symlink is an unstable API
-    symlink(path: string, link: string, cb: (err: Error|null) => void) {
+    symlink(path: string, link: string, cb: (err: Error | null) => void) {
         this.symlinkSync(path, link);
         cb(null);
     },
@@ -313,17 +313,13 @@ const fs = {
         Deno.symlinkSync(path, link);
     },
 
-    fsync(fd: number, cb: (err: Error|null) => void) {
+    fsync(fd: number, cb: (err: Error | null) => void) {
         this.fsyncSync(fd);
         cb(null);
     },
     fsyncSync(fd: number) {
         Deno.fsyncSync(fd);
     }
-
-
-
-
 
 
 }
