@@ -1,4 +1,5 @@
 import enosys from "./enosys.ts";
+import SeekMode = Deno.SeekMode;
 
 interface Stats {
     dev: number;
@@ -31,7 +32,6 @@ interface Stats {
 }
 
 //create FS for Go
-//TODO: rest of the fucking interface
 //go uses the following methods:
 /*
  * fs.open       [x]
@@ -80,15 +80,24 @@ const fs = {
 
     },
 
-    //TODO: position
     //use Deno.File
     write: function (fd: number, buf: Uint8Array, offset: number, length: number, position: number, callback: (err: Error | null, written: number, buf: Uint8Array) => void) {
-        let written = Deno.writeSync(fd, buf);
+        if (offset === undefined || offset === null) {
+            offset = 0;
+        }
+        if (length === undefined || length === null) {
+            length = buf.length;
+        }
+        let file = new Deno.File(fd);
+        if (position !== null && position !== undefined) {
+            file.seekSync(position, SeekMode.Start);
+        }
+        let buffer = buf.slice(offset, offset+length);
+        let written = file.writeSync(buffer);
+
         callback(null, written, buf);
     },
-    writeSync(fd: number, buf: Uint8Array) {
-        return Deno.writeSync(fd, buf);
-    },
+
     open(path: string, flags: number, mode: number, cb: (err: Error | null, fd: number) => void) {
         let fd = this.openSync(path, flags, mode)
         cb(null, fd);
@@ -167,11 +176,15 @@ const fs = {
         Deno.close(fd);
         return null;
     },
-    //TODO: position
-    //use Deno.File
+
     readSync(fd: number, buffer: Uint8Array, offset: number, length: number, position: number) {
-        let res = Deno.readSync(fd, buffer);
-        //deno returns null when file is done while Node returns 0
+        let file = new Deno.File(fd);
+        if (position !== null && position !== undefined) {
+            file.seekSync(position, SeekMode.Start);
+        }
+        let buf = new Uint8Array(length);
+        let res = file.readSync(buf);
+        buffer.set(buf, offset);
         if (res == null) res = 0;
         return res;
     },
@@ -363,7 +376,7 @@ function denoStatToNode(status: Deno.FileInfo) {
         mtimeMs: 0,
         nlink: 0,
         rdev: 0,
-        size: 0,
+        size: status.size,
         uid: 0
     }
 
@@ -418,6 +431,8 @@ function denoStatToNode(status: Deno.FileInfo) {
     if (status.blocks !== null) {
         nStat.blocks = status.blocks;
     }
+
+
     return nStat
 }
 
