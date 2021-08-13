@@ -56,8 +56,8 @@ class Go {
                 this.setInt64(sp + 8, (this.timeOrigin + performance.now()) * 1000000);
             },
 
-            // func walltime1() (sec int64, nsec int32)
-            "runtime.walltime1": (sp: number) => {
+            // func walltime() (sec int64, nsec int32)
+            "runtime.walltime": (sp: number) => {
                 sp >>>= 0
                 if (this.mem === undefined) throw new Error("Memory not initialized!");
 
