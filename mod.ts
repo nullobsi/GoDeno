@@ -230,6 +230,9 @@ class Go {
                     this.storeValue(sp + 56, result);
                     this.mem.setUint8(sp + 64, 1);
                 } catch (err) {
+                    //TODO: type this properly
+                    //@ts-ignore
+                    sp = this.instance.exports.getsp() >>> 0;
                     this.storeValue(sp + 56, err);
                     this.mem.setUint8(sp + 64, 0);
                 }
@@ -256,6 +259,10 @@ class Go {
                     this.storeValue(sp + 40, result);
                     this.mem.setUint8(sp + 48, 1);
                 } catch (err) {
+                    //TODO: type this properly
+                    //@ts-ignore
+                    sp = this.instance.exports.getsp(); // see comment above
+                    sp >>>= 0
                     // store error
                     this.storeValue(sp + 40, err);
                     this.mem.setUint8(sp + 48, 0);
@@ -284,6 +291,10 @@ class Go {
                     this.storeValue(sp + 40, result);
                     this.mem.setUint8(sp + 48, 1);
                 } catch (err) {
+                    //TODO: type this properly
+                    //@ts-ignore
+                    sp = this.instance.exports.getsp(); // see comment above
+                    sp >>>= 0
                     // store error
                     this.storeValue(sp + 40, err);
                     this.mem.setUint8(sp + 48, 0);
