@@ -104,7 +104,12 @@ class Go {
                 if (this.mem === undefined) throw new Error("Memory not initialized!");
 
                 const id = this.mem.getInt32(sp + 8, true);
-                clearTimeout(this.scheduledTimeouts.get(id));
+                try {
+                    clearTimeout(this.scheduledTimeouts.get(id));
+                } catch(e) {
+                    console.debug("Timeout failed to remove; already gone?");
+                    console.debug(e);
+                }
                 this.scheduledTimeouts.delete(id);
             },
 
