@@ -62,14 +62,14 @@ console.log("Go says: " + value); //Go says: Hello!
 - [x] fs.write
 
 ### Go Process implementation
-As of now, Deno does not have ways to get the UID/GID or umask.
-- [ ] process.getuid
+As of now, Deno does not have ways to get the GID or umask.
+- [x] process.getuid
 - [ ] process.getgid
 - [ ] process.geteuid
 - [ ] process.getegid
 - [ ] process.getgroups
 - [x] process.pid
-- [x] process.ppid       (Unstable API)
+- [x] process.ppid
 - [ ] process.umask
 - [x] process.cwd
 - [x] process.chdir

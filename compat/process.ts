@@ -3,7 +3,9 @@ import enosys from "./enosys.ts";
 // deno doesn't have process? not sure
 let process = {
     getuid() {
-        return -1;
+        let uid = Deno.getUid();
+        if (uid === null) throw enosys();
+        return uid;
     },
     getgid() {
         return -1;
