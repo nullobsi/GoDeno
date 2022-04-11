@@ -42,7 +42,7 @@ console.log("Go says: " + value); //Go says: Hello!
 - [x] fs.readdir   
 - [x] fs.stat      
 - [x] fs.lstat     
-- [x] fs.fstat      (Unstable API)
+- [x] fs.fstat
 - [x] fs.unlink     (Uses `Deno.remove()`)
 - [x] fs.rmdir     
 - [x] fs.chmod     
@@ -55,11 +55,11 @@ console.log("Go says: " + value); //Go says: Hello!
 - [x] fs.truncate  
 - [x] fs.ftruncate 
 - [x] fs.readlink  
-- [x] fs.link       (Unstable API)
-- [x] fs.symlink    (Unstable API)
+- [x] fs.link
+- [x] fs.symlink
 - [x] fs.fsync     
-- [x] fs.read       (`position` not implemented)
-- [x] fs.write      (`position` not implemented)
+- [x] fs.read
+- [x] fs.write
 
 ### Go Process implementation
 As of now, Deno does not have ways to get the UID/GID or umask.

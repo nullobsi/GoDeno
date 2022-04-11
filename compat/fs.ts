@@ -40,7 +40,7 @@ interface Stats {
  * fs.readdir    [x]
  * fs.stat       [x]
  * fs.lstat      [x]
- * fs.fstat      [/] Unstable API
+ * fs.fstat      [x]
  * fs.unlink     [/] Uses Deno.remove()
  * fs.rmdir      [x]
  * fs.chmod      [x]
@@ -53,11 +53,11 @@ interface Stats {
  * fs.truncate   [x]
  * fs.ftruncate  [x]
  * fs.readlink   [x]
- * fs.link       [/] Unstable API
- * fs.symlink    [/] Unstable API
+ * fs.link       [x]
+ * fs.symlink    [x]
  * fs.fsync      [x]
- * fs.read       [/] Position not implemented
- * fs.write      [/] Position not implemented
+ * fs.read       [x]
+ * fs.write      [x]
  */
 
 
@@ -301,7 +301,6 @@ const fs = {
         return Deno.readLinkSync(path);
     },
 
-    //link is an unstable API
     link(oldpath: string, newpath: string, cb: (err: Error | null) => void) {
         this.linkSync(oldpath, newpath);
     },
