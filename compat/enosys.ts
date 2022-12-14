@@ -1,13 +1,10 @@
-type GoErr = {
-    message: string;
-    name: string;
-    stack?: string;
+interface GoErr extends Error {
     code: string;
 }
 const enosys = () => {
-    const err = new Error("not implemented");
-    const gErr: GoErr = {...err, code: "ENOSYS"}
-    return gErr;
+    const err = new Error("not implemented") as GoErr;
+    err.code = "ENOSYS";
+    return err;
 };
 
 export default enosys;
