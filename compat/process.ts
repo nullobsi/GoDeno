@@ -1,14 +1,15 @@
 import enosys from "./enosys.ts";
 
-// deno doesn't have process? not sure
-let process = {
+const process = {
     getuid() {
-        let uid = Deno.getUid();
-        if (uid === null) throw enosys();
+        const uid = Deno.uid();
+        if (uid === null) return -1;
         return uid;
     },
     getgid() {
-        return -1;
+        const gid = Deno.gid();
+        if (gid === null) return -1;
+        return gid;
     },
     geteuid() {
         return -1;
@@ -22,7 +23,9 @@ let process = {
     pid: Deno.pid,
     ppid: Deno.ppid,
     umask() {
-        throw enosys();
+        const umask = Deno.umask();
+        if (umask == null) throw enosys();
+        return umask;
     },
     cwd() {
         return Deno.cwd()
