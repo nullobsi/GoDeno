@@ -50,7 +50,7 @@ console.log("Go says: " + value); //Go says: Hello!
 - [x] fs.chown     
 - [x] fs.fchown     (Not native API)
 - [ ] fs.lchown     (Deno does not support lchown.)
-- [x] fs.utimes     (Unstable API)
+- [x] fs.utimes
 - [x] fs.rename    
 - [x] fs.truncate  
 - [x] fs.ftruncate 
@@ -64,12 +64,12 @@ console.log("Go says: " + value); //Go says: Hello!
 ### Go Process implementation
 As of now, Deno does not have ways to get the GID or umask.
 - [x] process.getuid
-- [ ] process.getgid
+- [x] process.getgid
 - [ ] process.geteuid
 - [ ] process.getegid
 - [ ] process.getgroups
 - [x] process.pid
 - [x] process.ppid
-- [ ] process.umask
+- [x] process.umask (Unstable API)
 - [x] process.cwd
 - [x] process.chdir
