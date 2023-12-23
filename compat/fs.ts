@@ -63,7 +63,7 @@ interface Stats {
 
 //go probably does not use it all but Deno's std node
 //interface is not directly compatible with fs
-let fdMappings: { [x: number]: string } = {}
+const fdMappings: { [x: number]: string } = {}
 const fs = {
     constants: {
         O_RDONLY: 0,
@@ -88,45 +88,45 @@ const fs = {
         if (length === undefined || length === null) {
             length = buf.length;
         }
-        let file = new Deno.File(fd);
+        const file = new Deno.FsFile(fd);
         if (position !== null && position !== undefined) {
             file.seekSync(position, SeekMode.Start);
         }
-        let buffer = buf.slice(offset, offset+length);
-        let written = file.writeSync(buffer);
+        const buffer = buf.slice(offset, offset+length);
+        const written = file.writeSync(buffer);
 
         callback(null, written, buf);
     },
 
     open(path: string, flags: number, mode: number, cb: (err: Error | null, fd: number) => void) {
-        let fd = this.openSync(path, flags, mode)
+        const fd = this.openSync(path, flags, mode)
         cb(null, fd);
     },
 
     openSync(path: string, flags: number, mode: number) {
-        let options: Deno.OpenOptions = {};
+        const options: Deno.OpenOptions = {};
         if (typeof flags == "number") {
-            let rw = flags & 1;
+            const rw = flags & 1;
             if (rw == 0) {
                 options.read = true;
             } else {
                 options.write = true;
             }
-            let rnw = (flags >> 1) & 1;
+            const rnw = (flags >> 1) & 1;
             if (rnw == 1) {
                 options.read = true;
                 options.write = true;
             }
-            let create = (flags >> 6) & 1;
+            const create = (flags >> 6) & 1;
             if (create) {
                 options.create = true;
             }
-            let excl = (flags >> 7) & 1;
+            const excl = (flags >> 7) & 1;
             if (excl == 1) {
                 options.createNew = true;
             }
-            let trunc = (flags >> 9) & 1;
-            let append = (flags >> 10) & 1;
+            const trunc = (flags >> 9) & 1;
+            const append = (flags >> 10) & 1;
             if (trunc == 1) options.truncate = true;
             if (create == 1) options.create = true;
             if (append) options.append = true;
@@ -134,37 +134,37 @@ const fs = {
         }
         options.mode = mode;
         //console.log(options)
-        let fd = Deno.openSync(path, options).rid;
+        const fd = Deno.openSync(path, options).rid;
         fdMappings[fd] = path;
         return fd;
     },
     //fstat is an unstable API
     fstatSync(fd: number) {
         //require("fs").stat
-        let stats = denoStatToNode(Deno.fstatSync(fd));
+        const stats = denoStatToNode(Deno.fstatSync(fd));
         return stats;
     },
     fstat(fd: number, cb: (err: Error | null, stats: Stats) => void) {
-        let stats = this.fstatSync(fd);
+        const stats = this.fstatSync(fd);
         cb(null, stats);
     },
     statSync(path: string) {
-        let status = Deno.statSync(path);
-        let nStat = denoStatToNode(status);
+        const status = Deno.statSync(path);
+        const nStat = denoStatToNode(status);
         return nStat;
     },
     stat(path: string, cb: (err: Error | null, stats: Stats) => void) {
-        let res = this.statSync(path);
+        const res = this.statSync(path);
         cb(null, res);
     },
 
     lstat(path: string, cb: (err: Error | null, stats: Stats) => void) {
-        let res = this.lstatSync(path);
+        const res = this.lstatSync(path);
         cb(null, res);
     },
     lstatSync(path: string) {
-        let stat = Deno.lstatSync(path);
-        let nStat = denoStatToNode(stat);
+        const stat = Deno.lstatSync(path);
+        const nStat = denoStatToNode(stat);
         return nStat;
     },
 
@@ -178,18 +178,18 @@ const fs = {
     },
 
     readSync(fd: number, buffer: Uint8Array, offset: number, length: number, position: number) {
-        let file = new Deno.File(fd);
+        const file = new Deno.FsFile(fd);
         if (position !== null && position !== undefined) {
             file.seekSync(position, SeekMode.Start);
         }
-        let buf = new Uint8Array(length);
+        const buf = new Uint8Array(length);
         let res = file.readSync(buf);
         buffer.set(buf, offset);
         if (res == null) res = 0;
         return res;
     },
     read(fd: number, buffer: Uint8Array, offset: number, length: number, position: number, cb: (err: Error | null, len: number, buffer: Uint8Array) => void) {
-        let res = this.readSync(fd, buffer, offset, length, position);
+        const res = this.readSync(fd, buffer, offset, length, position);
         cb(null, res, buffer);
     },
 
@@ -204,13 +204,13 @@ const fs = {
     },
 
     readdir(path: string, cb: (err: Error | null, files: string[]) => void) {
-        let res = this.readdirSync(path);
+        const res = this.readdirSync(path);
         cb(null, res);
     },
     readdirSync(path: string) {
-        let entries = Deno.readDirSync(path);
-        let arr = [];
-        for (let filename of entries) arr.push(filename.name);
+        const entries = Deno.readDirSync(path);
+        const arr = [];
+        for (const filename of entries) arr.push(filename.name);
         return arr;
     },
 
@@ -255,7 +255,7 @@ const fs = {
     },
 
     //Deno does not support lchown
-    lchown(path: string, uid: number, gid: number, cb: (err: Error | null) => void) {
+    lchown(_path: string, _uid: number, _gid: number, cb: (err: Error | null) => void) {
         cb(enosys());
     },
 
@@ -294,7 +294,7 @@ const fs = {
     },
 
     readlink(path: string, cb: (err: Error | null, linkStr: string) => void) {
-        let res = this.readlinkSync(path);
+        const res = this.readlinkSync(path);
         cb(null, res);
     },
     readlinkSync(path: string) {
@@ -303,6 +303,7 @@ const fs = {
 
     link(oldpath: string, newpath: string, cb: (err: Error | null) => void) {
         this.linkSync(oldpath, newpath);
+		cb(null);
     },
     linkSync(oldpath: string, newpath: string) {
         Deno.linkSync(oldpath, newpath);
@@ -337,7 +338,7 @@ const fs = {
 }
 
 function denoStatToNode(status: Deno.FileInfo) {
-    let nStat: Stats = {
+    const nStat: Stats = {
         atime: new Date(0),
         atimeMs: 0,
         birthtime: new Date(0),
