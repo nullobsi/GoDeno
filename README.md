@@ -28,8 +28,8 @@ func main() {
 import Go from "mod.ts"
 
 let go = new Go();
-let inst = await WebAssembly.instantiate(Deno.readFileSync("code.wasm"), go.importObject);
-let promise = go.run(inst);
+let wasm = await WebAssembly.instantiate(Deno.readFileSync("code.wasm"), go.importObject);
+let promise = go.run(wasm.instance);
 
 let value = go.exports.export1;
 console.log("Go says: " + value); //Go says: Hello!

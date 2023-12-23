@@ -459,6 +459,9 @@ class Go {
     }
 
     public async run(i: WebAssembly.Instance) {
+		if (!(i instanceof WebAssembly.Instance)) {
+			throw new Error("Go.run: WebAssembly.Instance expected");
+		}
 
         this.instance = i;
 
@@ -692,4 +695,5 @@ class Go {
     }
 }
 
-export default Go;
+export { Go };
+
