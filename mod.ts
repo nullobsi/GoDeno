@@ -177,7 +177,7 @@ class Go {
                     if (this.exports === undefined) {
                         throw new Error("Memory not initialized!");
                     }
-                    if (obj == window) {
+                    if (obj == globalThis) {
                         if (ind == "fs") result = fs;
                         else if (ind == "performance") result = performance;
                         else if (ind == "process") result = process;
@@ -199,7 +199,7 @@ class Go {
                 let target = this.loadValue(sp + 8);
                 const name = this.loadString(sp + 16);
                 const value = this.loadValue(sp + 32);
-                if (target == window) target = this.exports;
+                if (target == globalThis) target = this.exports;
 
 				if (typeof target !== "object" || target === null) throw new Error("Set called on non-object!");
 
@@ -476,7 +476,7 @@ class Go {
             null,
             true,
             false,
-            window,
+            globalThis,
             this,
         ];
         this.goRefCounts = new Array(this._values.length).fill(Infinity); //number of refs that go has to a value
@@ -485,7 +485,7 @@ class Go {
             [null, 2],
             [true, 3],
             [false, 4],
-            [window, 5],
+            [globalThis, 5],
             [this, 6],
         ]);
         this.idPool = [];
